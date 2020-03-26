@@ -16,8 +16,79 @@ def filter_instances(project):
     return instances
 
 @click.group()
+def cli():
+    """Shotty manages snapshots"""
+
+
+@cli.group('snapshots')
+def snapshots():
+    """Commands for snapshots"""
+
+@snapshots.command('list')
+@click.option('--project', default=None,
+    help="Only volumes with project (tag Project:<name>)")
+def list_volumes(project):
+    "List Volume Snapshots"
+    
+    instances = filter_instances(project)
+
+    for i in instances:
+        for v in i.volumes.all():
+            for s in v.snapshots.all():
+                print(", ".join((
+                    s.id,
+                    v.id,
+                    i.id,
+                    s.state,
+                    s.progress,
+                    s.start_time.strftime("%c")
+
+            )))
+    return
+
+
+@cli.group('volumes')
+def volumes():
+    """Commands for volumes"""
+
+# let's fix this ourselves
+
+@volumes.command('list')
+@click.option('--project', default=None,
+    help="Only volumes with project (tag Project:<name>)")
+def list_volumes(project):
+    "List EC2 Volumes"
+    
+    instances = filter_instances(project)
+
+    for i in instances:
+        for v in i.volumes.all():
+            print(", ".join((
+                v.id,
+                i.id,
+                v.state,
+                str(v.size) + "Gib",
+                v.encrypted and "Encrypted" or "Not Encrypted"
+            )))
+    return
+
+@cli.group('instances')
 def instances():
     """Commands for instances"""
+
+@instances.command('snapshot',
+    help="Create snapshots of all volumes")
+def create_snapshots(project):
+    "Create snapshots for ECS instances"
+
+    instances = filter_instances(project)
+
+    for i in instances:
+        for v in i.volumes.all():
+            print("Creating snapshot of {0}".format(v.id))
+            v.create_snapshot(Description="Created by Snapshotalyezer 3000")
+    return
+
 
 @instances.command('list')
 @click.option('--project', default=None,
@@ -68,6 +139,6 @@ def start_instances(project):
     return
 
 if __name__ == '__main__':
-    instances()
+    cli()
     
 
